@@ -1,15 +1,16 @@
-#resolver: lts-9.0
-#resolver: lts-10.3
-#resolver: lts-10.5
-#resolver: lts-12.17
-resolver: lts-13.6
-# resolver: nightly-2018-11-05
+resolver: lts-16.18
+
 packages:
   - beam-sqlite
   - beam-postgres
   - beam-core
   - beam-migrate
-  - beam-migrate-cli
+
+extra-deps:
+- dependent-map-0.2.4.0@sha256:21d35c1eba3f2afa3af3c4c5d8998fd14ac76f596f951c280bd83d1d5a19ae28,1739
+- dependent-sum-0.4@sha256:40c705604f52374fb72616e10234635104a626ede737ddde899777b719df120b,1907
+- sqlite-simple-0.4.18.0@sha256:3ceea56375c0a3590c814e411a4eb86943f8d31b93b110ca159c90689b6b39e5,3002
+- direct-sqlite-2.3.26@sha256:04e835402f1508abca383182023e4e2b9b86297b8533afbd4e57d1a5652e0c23,3718
 
 nix:
   shell-file: shell.nix
