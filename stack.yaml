@@ -9,6 +9,5 @@ packages:
   - beam-migrate
   - beam-migrate-cli
 
-
-extra-deps:
-  - fgl-5.7.0.1
+nix:
+  packages: [postgresql]
