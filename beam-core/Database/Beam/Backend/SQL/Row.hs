@@ -67,6 +67,7 @@ instance Monad (FromBackendRowM be) where
     FromBackendRowM $
     a >>= (\x -> let FromBackendRowM b' = b x in b')
 
+instance MonadFail (FromBackendRowM be) where
   fail = FromBackendRowM . liftF . FailParseWith .
          BeamRowReadError Nothing . ColumnErrorInternal
 
