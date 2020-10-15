@@ -1,9 +1,4 @@
-{-# LANGUAGE CPP #-}
 module Database.Beam.Postgres.Test where
-
-#if MIN_VERSION_base(4,12,0)
-import           Prelude hiding (fail)
-#endif
 
 import qualified Database.PostgreSQL.Simple as Pg
 
@@ -11,9 +6,6 @@ import           Control.Exception (SomeException(..), bracket, catch)
 import           Control.Concurrent (threadDelay)
 
 import           Control.Monad (void)
-#if MIN_VERSION_base(4,12,0)
-import           Control.Monad.Fail (MonadFail(..))
-#endif
 
 import           Data.ByteString (ByteString)
 import           Data.Semigroup
@@ -80,9 +72,3 @@ startTempPostgres = do
 
   pure ( fromString ("host=" ++ pgDataDir)
        , void (callProcess "pg_ctl" [ "stop", "-D", pgDataDir ]))
-
-#if MIN_VERSION_base(4,12,0)
--- TODO orphan instances are bad
-instance Monad m => MonadFail (Hedgehog.PropertyT m) where
-    fail _ = Hedgehog.failure
-#endif
