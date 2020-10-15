@@ -8,7 +8,7 @@ import Database.Beam.Backend.SQL
 import Database.Beam.Migrate
 import Database.Beam.Migrate.Backend
 
-import Control.Monad (when)
+import           Control.Monad                          (when)
 
 import Data.String (fromString)
 import Data.Text (Text)
@@ -143,7 +143,7 @@ recordCommit commitId = do
 
 -- Ensure the backend tables exist
 ensureBackendTables :: forall be cmd hdl m
-                     . BeamMigrationBackend cmd be hdl m
+                     . MonadFail m => BeamMigrationBackend cmd be hdl m
                     -> m ()
 ensureBackendTables be@BeamMigrationBackend { backendGetDbConstraints = getCs } =
   do backendSchemaBuilt <- checkForBackendTables be
