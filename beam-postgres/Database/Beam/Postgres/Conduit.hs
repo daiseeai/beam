@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP        #-}
 {-# LANGUAGE LambdaCase #-}
 
 -- | More efficient query execution functions for @beam-postgres@. These
@@ -13,18 +13,21 @@ import           Database.Beam.Postgres.Full
 import           Database.Beam.Postgres.Syntax
 import           Database.Beam.Postgres.Types
 
-import           Control.Exception.Lifted (finally)
-import           Control.Monad.Trans.Control (MonadBaseControl)
+import           Control.Exception.Lifted            (finally)
+import           Control.Monad.Trans.Control         (MonadBaseControl)
 
-import qualified Database.PostgreSQL.LibPQ as Pg hiding
-  (Connection, escapeStringConn, escapeIdentifier, escapeByteaConn, exec)
-import qualified Database.PostgreSQL.Simple as Pg
+import qualified Database.PostgreSQL.LibPQ           as Pg hiding (Connection,
+                                                            escapeByteaConn,
+                                                            escapeIdentifier,
+                                                            escapeStringConn,
+                                                            exec)
+import qualified Database.PostgreSQL.Simple          as Pg
 import qualified Database.PostgreSQL.Simple.Internal as Pg (withConnection)
-import qualified Database.PostgreSQL.Simple.Types as Pg (Query(..))
+import qualified Database.PostgreSQL.Simple.Types    as Pg (Query (..))
 
-import qualified Data.Conduit as C
-import           Data.Int (Int64)
-import           Data.Maybe (fromMaybe)
+import qualified Data.Conduit                        as C
+import           Data.Int                            (Int64)
+import           Data.Maybe                          (fromMaybe)
 #if !MIN_VERSION_base(4, 11, 0)
 import           Data.Semigroup
 #endif
@@ -38,7 +41,7 @@ import           Data.Semigroup
 -- * @SELECT@
 
 -- | Run a PostgreSQL @SELECT@ statement in any 'MonadIO'.
-runSelect :: ( MonadIO m,  MonadBaseControl IO m, FromBackendRow Postgres a )
+runSelect :: ( MonadIO m,  MonadBaseControl IO m, MonadFail m, FromBackendRow Postgres a )
           => Pg.Connection -> SqlSelect Postgres a
           -> (CONDUIT_TRANSFORMER () a m () -> m b) -> m b
 runSelect conn (SqlSelect (PgSelectSyntax syntax)) withSrc =
@@ -56,7 +59,7 @@ runInsert conn (SqlInsert _ (PgInsertSyntax i)) =
 
 -- | Run a PostgreSQL @INSERT ... RETURNING ...@ statement in any 'MonadIO' and
 -- get a 'C.Source' of the newly inserted rows.
-runInsertReturning :: ( MonadIO m,  MonadBaseControl IO m, FromBackendRow Postgres a )
+runInsertReturning :: ( MonadIO m,  MonadBaseControl IO m, MonadFail m, FromBackendRow Postgres a )
                    => Pg.Connection
                    -> PgInsertReturning a
                    -> (CONDUIT_TRANSFORMER () a m () -> m b)
@@ -77,7 +80,7 @@ runUpdate conn (SqlUpdate _ (PgUpdateSyntax i)) =
 
 -- | Run a PostgreSQL @UPDATE ... RETURNING ...@ statement in any 'MonadIO' and
 -- get a 'C.Source' of the newly updated rows.
-runUpdateReturning :: ( MonadIO m, MonadBaseControl IO m, FromBackendRow Postgres a)
+runUpdateReturning :: ( MonadIO m, MonadBaseControl IO m, MonadFail m, FromBackendRow Postgres a)
                    => Pg.Connection
                    -> PgUpdateReturning a
                    -> (CONDUIT_TRANSFORMER () a m () -> m b)
@@ -98,7 +101,7 @@ runDelete conn (SqlDelete _ (PgDeleteSyntax d)) =
 
 -- | Run a PostgreSQl @DELETE ... RETURNING ...@ statement in any
 -- 'MonadIO' and get a 'C.Source' of the deleted rows.
-runDeleteReturning :: ( MonadIO m, MonadBaseControl IO m, FromBackendRow Postgres a )
+runDeleteReturning :: ( MonadIO m, MonadBaseControl IO m, MonadFail m, FromBackendRow Postgres a )
                    => Pg.Connection -> PgDeleteReturning a
                    -> (CONDUIT_TRANSFORMER () a m () -> m b) -> m b
 runDeleteReturning conn (PgDeleteReturning d) withSrc =
@@ -115,7 +118,7 @@ executeStatement conn x =
 
 -- | Runs any query that returns a set of values
 runQueryReturning
-  :: ( MonadIO m, MonadBaseControl IO m, Functor m, FromBackendRow Postgres r )
+  :: ( MonadIO m, MonadBaseControl IO m, MonadFail m, FromBackendRow Postgres r )
   => Pg.Connection -> PgSyntax
   -> (CONDUIT_TRANSFORMER () r m () -> m b)
   -> m b
@@ -176,14 +179,14 @@ runQueryReturning conn x withSrc = do
       nextRow <- Pg.getResult conn'
       case nextRow of
         Nothing -> pure ()
-        Just _ -> finishQuery conn'
+        Just _  -> finishQuery conn'
 
     gracefulShutdown =
       liftIO . Pg.withConnection conn $ \conn' ->
       do sts <- Pg.transactionStatus conn'
          case sts of
-           Pg.TransIdle -> pure ()
+           Pg.TransIdle    -> pure ()
            Pg.TransInTrans -> pure ()
            Pg.TransInError -> pure ()
            Pg.TransUnknown -> pure ()
-           Pg.TransActive -> cancelQuery conn'
+           Pg.TransActive  -> cancelQuery conn'

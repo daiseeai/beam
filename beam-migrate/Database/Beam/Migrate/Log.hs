@@ -3,19 +3,19 @@
 -- the managed migrations support here.
 module Database.Beam.Migrate.Log where
 
-import Database.Beam
-import Database.Beam.Backend.SQL
-import Database.Beam.Migrate
-import Database.Beam.Migrate.Backend
-import Database.Beam.Migrate.Types.Predicates (QualifiedName(..))
+import           Database.Beam
+import           Database.Beam.Backend.SQL
+import           Database.Beam.Migrate
+import           Database.Beam.Migrate.Backend
+import           Database.Beam.Migrate.Types.Predicates (QualifiedName (..))
 
-import Control.Monad (when)
+import           Control.Monad                          (when)
 
-import Data.String (fromString)
-import Data.Text (Text)
-import Data.Time (LocalTime)
-import Data.UUID.Types (UUID)
-import Data.Maybe (fromMaybe)
+import           Data.Maybe                             (fromMaybe)
+import           Data.String                            (fromString)
+import           Data.Text                              (Text)
+import           Data.Time                              (LocalTime)
+import           Data.UUID.Types                        (UUID)
 
 data LogEntryT f
   = LogEntry
@@ -143,7 +143,8 @@ recordCommit commitId = do
 
 -- Ensure the backend tables exist
 ensureBackendTables :: forall be m
-                     . BeamSqlBackendCanSerialize be Text
+                     . ( BeamSqlBackendCanSerialize be Text
+                       , MonadFail m )
                     => BeamMigrationBackend be m
                     -> m ()
 ensureBackendTables be@BeamMigrationBackend { backendGetDbConstraints = getCs } =

@@ -21,25 +21,25 @@ module Database.Beam.Migrate.Simple
   , module Database.Beam.Migrate.Actions
   , module Database.Beam.Migrate.Types ) where
 
-import           Prelude hiding (log)
+import           Prelude                       hiding (log)
 
 import           Database.Beam
 import           Database.Beam.Backend
 import           Database.Beam.Haskell.Syntax
 import           Database.Beam.Migrate.Actions
 import           Database.Beam.Migrate.Backend
-import           Database.Beam.Migrate.Checks (HasDataTypeCreatedCheck)
+import           Database.Beam.Migrate.Checks  (HasDataTypeCreatedCheck)
 import           Database.Beam.Migrate.Log
-import           Database.Beam.Migrate.SQL (BeamMigrateSqlBackendDataTypeSyntax)
+import           Database.Beam.Migrate.SQL     (BeamMigrateSqlBackendDataTypeSyntax)
 import           Database.Beam.Migrate.Types
 
 import           Control.Monad.Cont
-import           Control.Monad.Writer
 import           Control.Monad.State
+import           Control.Monad.Writer
 
-import qualified Data.HashSet as HS
-import           Data.Semigroup (Max(..))
-import qualified Data.Text as T
+import qualified Data.HashSet                  as HS
+import           Data.Semigroup                (Max (..))
+import qualified Data.Text                     as T
 
 data BringUpToDateHooks m
   = BringUpToDateHooks
@@ -69,7 +69,7 @@ data BringUpToDateHooks m
 
 -- | Default set of 'BringUpToDateHooks'. Refuses to run irreversible
 -- migrations, and fails in case of error, using 'fail'.
-defaultUpToDateHooks :: Monad m => BringUpToDateHooks m
+defaultUpToDateHooks :: (Monad m, MonadFail m) => BringUpToDateHooks m
 defaultUpToDateHooks =
   BringUpToDateHooks
   { runIrreversibleHook = pure False
@@ -93,8 +93,8 @@ defaultUpToDateHooks =
 --
 -- Tries to bring the database up to date, using the database log and the given
 -- 'MigrationSteps'. Fails if the migration is irreversible, or an error occurs.
-bringUpToDate :: ( Database be db
-                 , HasDataTypeCreatedCheck (BeamMigrateSqlBackendDataTypeSyntax be) )
+bringUpToDate :: ( HasDataTypeCreatedCheck (BeamMigrateSqlBackendDataTypeSyntax be)
+                 , MonadFail m )
               => BeamMigrationBackend be m
               -> MigrationSteps be () (CheckedDatabaseSettings be db)
               -> m (Maybe (CheckedDatabaseSettings be db))
@@ -109,8 +109,9 @@ bringUpToDate be@BeamMigrationBackend {} =
 -- documentation for 'BringUpToDateHooks' for more information. Calling this
 -- with 'defaultUpToDateHooks' is the same as using 'bringUpToDate'.
 bringUpToDateWithHooks :: forall db be m
-                        . ( Database be db
-                          , HasDataTypeCreatedCheck (BeamMigrateSqlBackendDataTypeSyntax be) )
+                        . ( HasDataTypeCreatedCheck (BeamMigrateSqlBackendDataTypeSyntax be)
+                          , MonadFail m
+                          )
                        => BringUpToDateHooks m
                        -> BeamMigrationBackend be m
                        -> MigrationSteps be () (CheckedDatabaseSettings be db)
@@ -140,7 +141,7 @@ bringUpToDateWithHooks hooks be@(BeamMigrationBackend { backendRenderSyntax = re
 
   case futureEntries of
     _:_ -> databaseAheadHook hooks (length futureEntries)
-    [] -> pure ()
+    []  -> pure ()
 
   -- Check data loss
   shouldRunMigration <-
@@ -184,14 +185,14 @@ simpleSchema provider settings =
   let allChecks = collectChecks settings
       solver    = heuristicSolver provider [] allChecks
   in case finalSolution solver of
-       Solved cmds -> Just (fmap migrationCommand cmds)
+       Solved cmds   -> Just (fmap migrationCommand cmds)
        Candidates {} -> Nothing
 
 -- | Given a 'CheckedDatabaseSettings' and a 'BeamMigrationBackend',
 -- attempt to create the schema from scratch in the current database.
 --
 -- May 'fail' if we cannot find a schema
-createSchema :: Database be db
+createSchema :: (Database be db, MonadFail m)
              => BeamMigrationBackend be m
              -> CheckedDatabaseSettings be db
              -> m ()
@@ -205,7 +206,7 @@ createSchema BeamMigrationBackend { backendActionProvider = actions } db =
 -- database up-to-date with the given 'CheckedDatabaseSettings'. Fails (via
 -- 'fail') if this involves an irreversible migration (one that may result in
 -- data loss).
-autoMigrate :: Database be db
+autoMigrate :: (Database be db, MonadFail m)
             => BeamMigrationBackend be m
             -> CheckedDatabaseSettings be db
             -> m ()
@@ -228,8 +229,7 @@ autoMigrate BeamMigrationBackend { backendActionProvider = actions
 --
 -- 'BeamMigrationBackend's can usually be found in a module named
 -- @Database.Beam.<Backend>.Migrate@ with the name@migrationBackend@
-simpleMigration :: ( MonadBeam be m
-                 ,   Database be db )
+simpleMigration :: Database be db
                 => (forall a. handle -> m a -> IO a)
                 -> BeamMigrationBackend be m
                 -> handle
@@ -243,7 +243,7 @@ simpleMigration runner BeamMigrationBackend { backendGetDbConstraints = getCs
       solver = heuristicSolver action pre post
 
   case finalSolution solver of
-    Solved cmds -> pure (Just (fmap migrationCommand cmds))
+    Solved cmds   -> pure (Just (fmap migrationCommand cmds))
     Candidates {} -> pure Nothing
 
 -- | Result type for 'verifySchema'
@@ -301,7 +301,7 @@ backendMigrationScript render mig =
 --
 -- Backends that have a migration backend typically export it under the module
 -- name @Database.Beam./Backend/.Migrate@.
-haskellSchema :: MonadBeam be m
+haskellSchema :: (MonadBeam be m, MonadFail m)
               => BeamMigrationBackend be m
               -> m String
 haskellSchema BeamMigrationBackend { backendGetDbConstraints = getCs
@@ -315,6 +315,6 @@ haskellSchema BeamMigrationBackend { backendGetDbConstraints = getCs
     Solved cmds   ->
       let hsModule = hsActionsToModule "NewBeamSchema" (map migrationCommand cmds)
       in case renderHsSchema hsModule of
-           Left err -> fail ("Error writing Haskell schema: " ++ err)
+           Left err     -> fail ("Error writing Haskell schema: " ++ err)
            Right modStr -> pure modStr
     Candidates {} -> fail "Could not form Haskell schema"
