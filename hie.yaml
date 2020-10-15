@@ -1,0 +1,19 @@
+cradle:
+  stack:
+    - path: "beam-core"
+      component: "beam-core:lib"
+
+    - path: "beam-core/test"
+      component: "beam-core:test:beam-core-tests"
+
+    - path: "beam-migrate"
+      component: "beam-migrate:lib"
+
+    - path: "beam-postgres"
+      component: "beam-postgres:lib"
+
+    - path: "beam-postgres/test"
+      component: "beam-postgres:test:beam-postgres-tests"
+
+    - path: "beam-sqlite"
+      component: "beam-sqlite:lib"
