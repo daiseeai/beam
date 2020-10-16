@@ -13,6 +13,7 @@ module Database.Beam.Backend.Types
 
   , Exposed, Nullable ) where
 
+import qualified Control.Monad.Fail as Fail
 import           Control.Monad.Free.Church
 import           Control.Monad.Identity
 import           Data.Tagged
@@ -36,6 +37,9 @@ data FromBackendRowF be f where
   CheckNextNNull :: Int -> (Bool -> f) -> FromBackendRowF be f
 deriving instance Functor (FromBackendRowF be)
 type FromBackendRowM be = F (FromBackendRowF be)
+
+instance Fail.MonadFail (FromBackendRowM be) where
+  fail = Fail.fail
 
 parseOneField :: BackendFromField be a => FromBackendRowM be a
 parseOneField = liftF (ParseOneField id)

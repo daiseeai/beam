@@ -10,7 +10,6 @@ import Database.Beam.Backend.SQL.Types
 import Database.Beam.Backend.Types
 
 import Control.Monad.IO.Class
-import Control.Monad.Fail (MonadFail)
 
 -- * MonadBeam class
 

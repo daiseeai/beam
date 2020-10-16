@@ -41,13 +41,8 @@ import           Data.Semigroup
 -- * @SELECT@
 
 -- | Run a PostgreSQL @SELECT@ statement in any 'MonadIO'.
-<<<<<<< HEAD
-runSelect :: ( MonadIO m,  MonadBaseControl IO m, FromBackendRow Postgres a )
-          => Pg.Connection -> SqlSelect PgSelectSyntax a
-=======
 runSelect :: ( MonadIO m,  MonadBaseControl IO m, MonadFail m, FromBackendRow Postgres a )
-          => Pg.Connection -> SqlSelect Postgres a
->>>>>>> 76dbc63... Bump package upper bounds, and add appropriate MonadFail constraints
+          => Pg.Connection -> SqlSelect PgSelectSyntax a
           -> (CONDUIT_TRANSFORMER () a m () -> m b) -> m b
 runSelect conn (SqlSelect (PgSelectSyntax syntax)) withSrc =
   runQueryReturning conn syntax withSrc
@@ -64,11 +59,7 @@ runInsert conn (SqlInsert (PgInsertSyntax i)) =
 
 -- | Run a PostgreSQL @INSERT ... RETURNING ...@ statement in any 'MonadIO' and
 -- get a 'C.Source' of the newly inserted rows.
-<<<<<<< HEAD
-runInsertReturning :: ( MonadIO m,  MonadBaseControl IO m, FromBackendRow Postgres a)
-=======
 runInsertReturning :: ( MonadIO m,  MonadBaseControl IO m, MonadFail m, FromBackendRow Postgres a )
->>>>>>> 76dbc63... Bump package upper bounds, and add appropriate MonadFail constraints
                    => Pg.Connection
                    -> PgInsertReturning a
                    -> (CONDUIT_TRANSFORMER () a m () -> m b)
