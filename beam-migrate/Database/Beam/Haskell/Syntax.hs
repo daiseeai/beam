@@ -337,7 +337,11 @@ dbTypeDecl be syntax =
 
     tyVarBind nm = Hs.UnkindedVar () (Hs.Ident () nm)
 
+#if MIN_VERSION_haskell_src_exts(1, 22, 0)
+    monadBeamConstraint = Hs.TypeA () (Hs.TyApp () (Hs.TyCon () (Hs.UnQual () (Hs.Ident () "MonadBeam"))) syntaxVar)
+#else
     monadBeamConstraint = Hs.ClassA () (Hs.UnQual () (Hs.Ident () "MonadBeam")) [ syntaxVar, beVar, tyVarNamed "hdl", tyVarNamed "m" ]
+#endif
 
 dbDecl :: HsBeamBackend HsExpr -> HsBeamBackend () -> [HsExpr] -> Hs.Decl ()
 dbDecl _ syntax params =
@@ -950,7 +954,6 @@ instance Hashable (Hs.IPName ())
 instance Hashable (Hs.Asst ())
 instance Hashable (Hs.Literal ())
 instance Hashable (Hs.Name ())
-instance Hashable (Hs.Type ())
 instance Hashable (Hs.QOp ())
 instance Hashable (Hs.TyVarBind ())
 instance Hashable (Hs.Kind ())
