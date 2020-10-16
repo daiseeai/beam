@@ -49,6 +49,7 @@ module Database.Beam.Migrate.Types
 import Database.Beam.Migrate.Types.CheckedEntities
 import Database.Beam.Migrate.Types.Predicates
 
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.Free.Church
 import Control.Arrow
 import Control.Category (Category)
@@ -82,6 +83,9 @@ deriving instance Functor (MigrationF syntax)
 
 -- | A sequence of potentially reversible schema update commands
 type Migration syntax = F (MigrationF syntax)
+
+instance Fail.MonadFail (Migration syntax) where
+  fail = Fail.fail
 
 -- | Information on whether a 'MigrationCommand' loses data. You can
 -- monoidally combine these to get the potential data loss for a
